@@ -2,7 +2,15 @@ import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
 
-public class ParkingLotSimulation {
+class ParkingLotSimulation {
+    // ANSI color codes for console text
+    public static final String RESET = "\u001B[0m";  // Resets the console color
+    public static final String RED = "\u001B[31m";
+    public static final String GREEN = "\u001B[32m";
+    public static final String YELLOW = "\u001B[33m";
+    public static final String BLUE = "\u001B[34m";
+
+
     private static final int TOTAL_PARKING_SPOTS = 4;
     private static final Semaphore parkingSpots = new Semaphore(TOTAL_PARKING_SPOTS, true);//Acquires a permit from this semaphore, blocking until one is available
     private static int totalCarsServed = 0;
@@ -50,7 +58,7 @@ public class ParkingLotSimulation {
                 cars.add(new Car(gate, carId, arriveTime, parkDuration));
             }
         } catch (IOException e) {
-            System.out.println("An error occurred while reading input.");
+            System.out.println(RED +"An error occurred while reading input." + RESET);
         }
         return cars;
     }
@@ -67,7 +75,6 @@ public class ParkingLotSimulation {
             this.arriveTime = arriveTime;
             this.parkDuration = parkDuration;
         }
-
         @Override
         public void run() {
             try {
@@ -75,49 +82,36 @@ public class ParkingLotSimulation {
                 Thread.sleep(arriveTime * 1000L);
                 System.out.println("Car " + carId + " from " + gate + " arrived at time " + arriveTime);
 
+                long startTime = System.currentTimeMillis(); // Mark when car starts trying to park
+
                 // Attempt to acquire a parking spot
-                if (parkingSpots.tryAcquire()) { //try to acquire a permit from the semaphore
-                    synchronized (lock) {
-                        currentCarsInParking++;
-                        System.out.println("Car " + carId + " from " + gate + " parked. (Parking Status: "
-                                + (TOTAL_PARKING_SPOTS - parkingSpots.availablePermits()) + " spots occupied)");
-                        gateCarCount.put(gate, gateCarCount.get(gate) + 1);
-                        totalCarsServed++; // Increment the total cars served
-                    }
-
-                    // Stay parked for the specified duration
-                    Thread.sleep(parkDuration * 1000L);
-
-                    // Leave the parking spot
-                    synchronized (lock) {
-                        currentCarsInParking--;
-                        parkingSpots.release();
-                        System.out.println("Car " + carId + " from " + gate + " left after " + parkDuration
-                                + " units of time. (Parking Status: "
-                                + (TOTAL_PARKING_SPOTS - parkingSpots.availablePermits()) + " spots occupied)");
-                    }
-                } else {
+                if (!parkingSpots.tryAcquire()) {
                     // Waiting for a spot
-                    System.out.println("Car " + carId + " from " + gate + " waiting for a spot.");
-                    parkingSpots.acquire();
-                    synchronized (lock) {
-                        currentCarsInParking++;
-                        System.out.println("Car " + carId + " from " + gate + " parked after waiting.");
-                        gateCarCount.put(gate, gateCarCount.get(gate) + 1);
-                        totalCarsServed++;
-                    }
+                    System.out.println(YELLOW + "Car " + carId + " from " + gate + " waiting for a spot." + RESET);
+                    parkingSpots.acquire(); // Waits until a permit is available
+                }
 
-                    // Stay parked for the specified duration
-                    Thread.sleep(parkDuration * 1000L);
+                // Successfully acquired a parking spot
+                long waitTime = System.currentTimeMillis() - startTime; // Calculate total wait time
+                synchronized (lock) {
+                    currentCarsInParking++;
+                    System.out.println(GREEN + "Car " + carId + " from " + gate + " parked after waiting for "
+                            + Math.round(waitTime / 1000.0) + " units of time. (Parking Status: "
+                            + (TOTAL_PARKING_SPOTS - parkingSpots.availablePermits()) + " spots occupied)" + RESET);
+                    gateCarCount.put(gate, gateCarCount.get(gate) + 1);
+                    totalCarsServed++;
+                }
 
-                    // Leave the parking spot
-                    synchronized (lock) {
-                        currentCarsInParking--;
-                        parkingSpots.release();
-                        System.out.println("Car " + carId + " from " + gate + " left after " + parkDuration
-                                + " units of time. (Parking Status: "
-                                + (TOTAL_PARKING_SPOTS - parkingSpots.availablePermits()) + " spots occupied)");
-                    }
+                // Stay parked for the specified duration
+                Thread.sleep(parkDuration * 1000L);
+
+                // Leave the parking spot
+                synchronized (lock) {
+                    currentCarsInParking--;
+                    parkingSpots.release();
+                    System.out.println(BLUE + "Car " + carId + " from " + gate + " left after " + parkDuration
+                            + " units of time. (Parking Status: "
+                            + (TOTAL_PARKING_SPOTS - parkingSpots.availablePermits()) + " spots occupied)" + RESET);
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
