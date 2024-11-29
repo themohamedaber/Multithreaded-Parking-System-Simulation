@@ -21,17 +21,6 @@ The **Multithreaded Parking System Simulation** is a Java-based project that sim
 
 ---
 
-## Technologies Used
-- **Programming Language**: Java
-- **Concurrency Tools**: 
-  - Semaphore
-  - CountDownLatch
-  - Synchronized blocks
-- **File Handling**: Reads car data from a text file.
-- **Testing Framework**: JUnit (if applicable for future testing).
-
----
-
 ## How to Run the Project
 1. **Clone the repository**:
    ```bash
